@@ -1,0 +1,126 @@
+import pandas as pd
+import matplotlib.pyplot as plt
+
+plt.rcParams['font.sans-serif']='SimHei'
+plt.rcParams['axes.unicode_minus']=False
+
+
+# 读取CSV文件
+beijing_data = pd.read_csv('beijing_weather_2023.csv')
+wuxi_data = pd.read_csv('wuxi_weather_2023.csv')
+
+# 检查日期列
+print(beijing_data['日期'].head())
+
+# 处理缺失值
+beijing_data = beijing_data.dropna(subset=['日期'])
+wuxi_data = wuxi_data.dropna(subset=['日期'])
+
+# 指定日期格式转换
+beijing_data['日期'] = pd.to_datetime(beijing_data['日期'], format='%Y年%m月%d日', errors='coerce')
+wuxi_data['日期'] = pd.to_datetime(wuxi_data['日期'], format='%Y年%m月%d日', errors='coerce')
+
+
+# 提取月份
+beijing_data['月份'] = beijing_data['日期'].dt.month
+wuxi_data['月份'] = wuxi_data['日期'].dt.month
+
+# 清洗气温数据
+beijing_data['气温'] = beijing_data['气温'].str.extract(r'(\d+)').astype(float)
+wuxi_data['气温'] = wuxi_data['气温'].str.extract(r'(\d+)').astype(float)
+
+# 清洗风速数据
+beijing_data['风力'] = beijing_data['风力'].str.extract(r'(\d+)').astype(float)
+wuxi_data['风力'] = wuxi_data['风力'].str.extract(r'(\d+)').astype(float)
+
+# 按月份计算平均气温和风速
+beijing_monthly_temp = beijing_data.groupby('月份')['气温'].mean()
+wuxi_monthly_temp = wuxi_data.groupby('月份')['气温'].mean()
+beijing_monthly_wind = beijing_data.groupby('月份')['风力'].mean()
+wuxi_monthly_wind = wuxi_data.groupby('月份')['风力'].mean()
+
+# 可视化气温与风速（同之前的代码）
+fig, ax1 = plt.subplots(figsize=(12, 6))
+
+# 绘制气温曲线
+ax1.set_xlabel('月份')
+ax1.set_ylabel('平均气温 (°C)', color='tab:red')
+ax1.plot(beijing_monthly_temp.index, beijing_monthly_temp.values, marker='o', label='北京气温', color='tab:red')
+ax1.plot(wuxi_monthly_temp.index, wuxi_monthly_temp.values, marker='o', label='无锡气温', color='tab:orange')
+ax1.tick_params(axis='y', labelcolor='tab:red')
+ax1.set_xticks(range(1, 13))
+ax1.set_xticklabels(['一月', '二月', '三月', '四月', '五月', '六月', '七月', '八月', '九月', '十月', '十一月', '十二月'])
+
+# 创建第二个y轴用于风速
+ax2 = ax1.twinx()
+ax2.set_ylabel('平均风速 (级)', color='tab:blue')
+ax2.plot(beijing_monthly_wind.index, beijing_monthly_wind.values, marker='x', label='北京风速', color='tab:blue')
+ax2.plot(wuxi_monthly_wind.index, wuxi_monthly_wind.values, marker='x', label='无锡风速', color='tab:cyan')
+ax2.tick_params(axis='y', labelcolor='tab:blue')
+
+# 添加标题和图例
+plt.title('2023年北京与无锡月平均气温和风速对比')
+fig.tight_layout()
+fig.legend(loc='upper left', bbox_to_anchor=(0.1, 0.9), bbox_transform=ax1.transAxes)
+
+plt.grid()
+plt.show()
+
+
+
+
+
+
+
+
+
+
+
+
+
+#####################
+# 处理天气状况
+# 提取天气状况中的主要描述
+beijing_data['天气状况'] = beijing_data['天气'].str.split('/').str[0].str.strip()
+wuxi_data['天气状况'] = wuxi_data['天气'].str.split('/').str[0].str.strip()
+
+# 统计每种天气状况的数量
+beijing_weather_counts = beijing_data['天气状况'].value_counts()
+wuxi_weather_counts = wuxi_data['天气状况'].value_counts()
+
+# 绘制饼状图
+fig, axs = plt.subplots(1, 2, figsize=(12, 6))
+
+# 北京天气状况饼状图
+axs[0].pie(beijing_weather_counts, labels=beijing_weather_counts.index, autopct='%1.1f%%', startangle=90, colors=['#ff9999', '#66b3ff', '#99ff99'])
+axs[0].axis('equal')  # Equal aspect ratio ensures that pie is drawn as a circle.
+axs[0].set_title('2023年北京天气状况分布')
+
+# 无锡天气状况饼状图
+axs[1].pie(wuxi_weather_counts, labels=wuxi_weather_counts.index, autopct='%1.1f%%', startangle=90, colors=['#ff9999', '#66b3ff', '#99ff99'])
+axs[1].axis('equal')
+axs[1].set_title('2023年无锡天气状况分布')
+
+plt.tight_layout()
+plt.show()
+
+
+#################################################
+
+# 计算风速和气温的相关性
+beijing_corr = beijing_data[['气温', '风力']].corr().iloc[0, 1]
+wuxi_corr = wuxi_data[['气温', '风力']].corr().iloc[0, 1]
+
+print(f"北京气温与风速的相关系数: {beijing_corr:.2f}")
+print(f"无锡气温与风速的相关系数: {wuxi_corr:.2f}")
+
+# 可视化气温与风速的关系
+plt.figure(figsize=(12, 6))
+plt.scatter(beijing_data['气温'], beijing_data['风力'], alpha=0.5, label='北京')
+plt.scatter(wuxi_data['气温'], wuxi_data['风力'], alpha=0.5, label='无锡')
+plt.title('气温与风速的关系')
+plt.xlabel('气温 (°C)')
+plt.ylabel('风速 (m/s)')
+plt.legend()
+plt.grid()
+plt.show()
