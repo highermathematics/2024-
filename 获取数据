@@ -1,0 +1,45 @@
+import requests
+from lxml import html
+import csv
+
+# 创建一个函数来提取天气数据并保存到CSV文件
+def city_data(city):
+    weather_data = []  # 在函数内创建一个列表来存储每个城市的天气数据
+    for i in range(202301, 202313):
+        url = f"http://www.tianqihoubao.com/lishi/{city}/month/{i}.html"
+        rq = requests.get(url)
+
+        # 检查请求是否成功
+        if rq.status_code == 200:
+            page_content = rq.text
+            tree = html.fromstring(page_content)
+
+            # 使用XPath提取数据
+            rows = tree.xpath('//tr')[1:]  # 跳过表头
+
+            for row in rows:
+                day = row.xpath('./td[1]/text()')[0].strip()
+                weather = row.xpath('./td[2]/text()')[0].strip()
+                temperature = row.xpath('./td[3]/text()')[0].strip()
+                wind = row.xpath('./td[4]/text()')[0].strip()
+
+                # 将数据添加到列表中
+                weather_data.append([day, weather, temperature, wind])
+
+        rq.close()
+
+    # 将数据保存到CSV文件
+    with open(f'{city}_weather_2023.csv', mode='w', newline='', encoding='utf-8') as file:
+        writer = csv.writer(file)
+        writer.writerow(['日期', '天气', '气温', '风力'])  # 写入表头
+        writer.writerows(weather_data)  # 写入数据
+
+    print(f"数据已保存到 {city}_weather_2023.csv 文件中。")
+
+# 获取用户输入的城市
+city1 = input("请输入第一个城市: ")
+city2 = input("请输入第二个城市: ")
+
+# 调用函数获取两个城市的数据
+city_data(city1)
+city_data(city2)
